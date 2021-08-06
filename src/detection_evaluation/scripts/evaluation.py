@@ -9,7 +9,7 @@ path_publisher = None
 previous_object_list = None
 object_ID = 0
 error = 0.1
-vehicle_velocity = 1
+vehicle_velocity = None
 
 
 ### Function to check similarity between 2 objects based on their pose and shape
@@ -78,10 +78,16 @@ def callback(current_object_list):
         ## move to next object list
         previous_object_list = current_object_list
 
-    
+ 
+def callback2(velocity_data):
+    # print(velocity_data)
+    global vehicle_velocity
+    vehicle_velocity = velocity_data.twist.linear.x
+
 def listener():
     global path_publisher
     rospy.init_node('listener', anonymous=True)
+    rospy.Subscriber("/vehicle/status/twist", TwistStamped, callback2)
     rospy.Subscriber("/objects", DynamicObjectWithFeatureArray, callback) # output/labeled_clusters, /perception/object_recognition/detection/objects/visualization -> MarkerArray,  /lidar_apollo_instance_segmentation/debug/instance_pointcloud -> PointCloud2
     path_publisher = rospy.Publisher("object_detection/counter", String, queue_size=1)
     rospy.spin()
