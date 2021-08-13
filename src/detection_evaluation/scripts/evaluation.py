@@ -88,51 +88,25 @@ def callback2(velocity_data):
     global vehicle_velocity
     vehicle_velocity = velocity_data.twist.linear.x
 
-def check_similarity2(current_object, previous_object, time_elapsed):
-    # calcualte absolute pose of markers 
-    # if difference is negligible -> same obj
-
-    detected_object_info = [0, [0,0,0],[0,0,0]] ## [flag, pose, shape] where flag = 1 if objects are same
-
-    pose_current = [current_object.object.state.pose_covariance.pose.position.x, \
-                    current_object.object.state.pose_covariance.pose.position.y, \
-                    current_object.object.state.pose_covariance.pose.position.z]
-    pose_previous = [previous_object['pose'].x, \
-                     previous_object['pose'].y, \
-                     previous_object['pose'].z]
-
-    shape_current = [current_object.object.shape.dimensions.x, \
-                     current_object.object.shape.dimensions.y, \
-                     current_object.object.shape.dimensions.z]
-    shape_previous = [previous_object['shape'].x, \
-                      previous_object['shape'].y, \
-                      previous_object['shape'].z]
-
-    # print(vehicle_velocity)
-    if abs(pose_current[1] - pose_previous[1]) <= error and \
-       abs(pose_current[2] - pose_previous[2]) <= error and \
-       abs(pose_current[0] - (pose_previous[0] - (vehicle_velocity*time_elapsed))) <= error and \
-       abs(shape_current[0] - shape_previous[0]) <= error and \
-       abs(shape_current[1] - shape_previous[1]) <= error and \
-       abs(shape_current[2] - shape_previous[2]) <= error:
-       
-        # print("Same objects with pose = " + str(pose_current))
-        return 1
-    
-    # print("Different object pairs")
-    return 0
-
-
 def callback3(current_clusters_list):
+    
+    global counter
+    global object_ID
+    global global_object_list
     
     if counter == 0:
         for i in range(len(current_clusters_list.feature_objects)):
+            temp_object_dict = {'object_ID': object_ID, 'timestamp': current_clusters_list.header.stamp, \
+            'pose': current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position, \
+            'shape': current_clusters_list.feature_objects[i].object.shape.dimensions, 'num of detections': 1}
             
-            global_object_list[object_ID]['object_ID'] = object_ID
-            global_object_list[object_ID]['timestamp'] = current_clusters_list.header.stamp
-            global_object_list[object_ID]['pose'] = current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position
-            global_object_list[object_ID]['shape'] = current_clusters_list.feature_objects[i].object.shape.dimensions
-            global_object_list[object_ID]['num of detections'] = 1
+            global_object_list.append(temp_object_dict)
+            
+            # global_object_list[object_ID]['object_ID'] = object_ID
+            # global_object_list[object_ID]['timestamp'] = current_clusters_list.header.stamp
+            # global_object_list[object_ID]['pose'] = current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position
+            # global_object_list[object_ID]['shape'] = current_clusters_list.feature_objects[i].object.shape.dimensions
+            # global_object_list[object_ID]['num of detections'] = 1
             object_ID = object_ID + 1
         counter = counter + 1
         # previous_clusters_list = current_clusters_list
@@ -140,23 +114,50 @@ def callback3(current_clusters_list):
 
     else:
         for i in range(len(current_clusters_list.feature_objects)):
-            for j in range(len(global_object_list)):
-                time_elapsed = ((current_clusters_list.header.stamp.secs + (current_object_list.header.stamp.nsecs/1000000000)) - (global_object_list[j]['timestamp'].secs + (global_object_list[j]['timestamp'].nsecs/1000000000)))
-                if check_similarity2(current_clusters_list.feature_objects[i], global_object_list[j], time_elapsed): 
-                    global_object_list[j]['num of detections'] = global_object_list[j]['num of detections'] + 1
-                else:
-                    global_object_list[object_ID]['object_ID'] = object_ID
-                    global_object_list[object_ID]['timestamp'] = current_clusters_list.header.stamp
-                    global_object_list[object_ID]['pose'] = current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position
-                    global_object_list[object_ID]['shape'] = current_clusters_list.feature_objects[i].object.shape.dimensions
-                    global_object_list[object_ID]['num of detections'] = 1
-                    object_ID = object_ID + 1
+            if len(current_clusters_list.feature_objects) != 0:
+                
+                for j in range(len(global_object_list)):
+                    time_elapsed = ((current_clusters_list.header.stamp.secs + (current_object_list.header.stamp.nsecs/1000000000)) - (global_object_list[j]['timestamp'].secs + (global_object_list[j]['timestamp'].nsecs/1000000000)))
+                    if check_similarity2(current_clusters_list.feature_objects[i], global_object_list[j], time_elapsed): 
+                        global_object_list[j]['num of detections'] = global_object_list[j]['num of detections'] + 1
+                    else:
+
+                        temp_object_dict = {'object_ID': object_ID, 'timestamp': current_clusters_list.header.stamp, \
+                                            'pose': current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position, \
+                                            'shape': current_clusters_list.feature_objects[i].object.shape.dimensions, 'num of detections': 1}
+            
+                        global_object_list.append(temp_object_dict)
+
+                        # global_object_list[object_ID]['object_ID'] = object_ID
+                        # global_object_list[object_ID]['timestamp'] = current_clusters_list.header.stamp
+                        # global_object_list[object_ID]['pose'] = current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position
+                        # global_object_list[object_ID]['shape'] = current_clusters_list.feature_objects[i].object.shape.dimensions
+                        # global_object_list[object_ID]['num of detections'] = 1
+                        object_ID = object_ID + 1
+                        print(global_object_list)
+            else:
+
+                temp_object_dict = {'object_ID': object_ID, 'timestamp': current_clusters_list.header.stamp, \
+                                    'pose': current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position, \
+                                    'shape': current_clusters_list.feature_objects[i].object.shape.dimensions, 'num of detections': 1}
+            
+                global_object_list.append(temp_object_dict)
+
+                # global_object_list[object_ID]['object_ID'] = object_ID
+                # global_object_list[object_ID]['timestamp'] = current_clusters_list.header.stamp
+                # global_object_list[object_ID]['pose'] = current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position
+                # global_object_list[object_ID]['shape'] = current_clusters_list.feature_objects[i].object.shape.dimensions
+                # global_object_list[object_ID]['num of detections'] = 1
+                object_ID = object_ID + 1
+                print(global_object_list)
 
         counter = counter + 1
+        print("In else - " + str(len(current_clusters_list.feature_objects)) + " and " + str(len(global_object_list)))
 
         if counter % 10 == 0:
             global_object_str = str(global_object_list)
             path_publisher.publish(global_object_str)
+
 
 
 def listener():
