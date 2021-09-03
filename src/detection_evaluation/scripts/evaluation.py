@@ -4,6 +4,10 @@ from std_msgs.msg import String
 from autoware_perception_msgs.msg import DynamicObjectWithFeatureArray
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs import point_cloud2
+from geometry_msgs.msg import TwistStamped
+
+from detection_evaluation.msg import Message1
+
 
 path_publisher = None
 previous_object_list = None
@@ -12,8 +16,8 @@ error = 0.1
 vehicle_velocity = None
 
 counter = 0
-previous_clusters_list = None
-global_object_list = {}
+# previous_clusters_list = None
+global_object_list = []
 
 
 ### Function to check similarity between 2 objects based on their pose and shape
@@ -155,9 +159,9 @@ def callback3(current_clusters_list):
                     global_object_list[j]['num of detections'] = global_object_list[j]['num of detections'] + 1
                 # else:
 
-            temp_object_dict = {'object_ID': object_ID, 'timestamp': current_clusters_list.header.stamp, \
+            temp_object_dict = {'object_ID': object_ID, 'timestamp_s': current_clusters_list.header.stamp.secs, 'timestamp_ns': current_clusters_list.header.stamp.nsecs, \
                                 'pose': current_clusters_list.feature_objects[i].object.state.pose_covariance.pose.position, \
-                                'shape': current_clusters_list.feature_objects[i].object.shape.dimensions, 'num of detections': 1}
+                                'num_of_detections': 1}
 
             global_object_list.append(temp_object_dict)
             object_ID = object_ID + 1
@@ -174,6 +178,15 @@ def callback3(current_clusters_list):
 
                 # print(global_object_list)
             counter = counter + 1
+            
+            pub1.object_ID = temp_object_dict['object_ID']
+            pub1.timestamp_s = temp_object_dict['timestamp_s']
+            pub1.timestamp_ns = temp_object_dict['timestamp_ns']
+            pub1.pose = current_clusters_list.feature_objects[i].object.state.pose_covariance
+            pub1.num_of_detections = temp_object_dict['num_of_detections']
+
+            path_publisher.publish(pub1)
+
 
         # print("In else - " + str(len(current_clusters_list.feature_objects)) + " and " + str(len(global_object_list)))
         # print("COUNTER: " + str(counter))
@@ -186,7 +199,7 @@ def callback3(current_clusters_list):
         # print("#####################################################")
         if counter % 10 == 0:
             global_object_str = str(global_object_list)
-            path_publisher.publish(global_object_str)
+#             path_publisher.publish(global_object_str)
 
 
 def listener():
@@ -196,7 +209,7 @@ def listener():
     rospy.Subscriber("/labeled_clusters", DynamicObjectWithFeatureArray, callback3)
 
     # rospy.Subscriber("/objects", DynamicObjectWithFeatureArray, callback) # output/labeled_clusters, /perception/object_recognition/detection/objects/visualization -> MarkerArray,  /lidar_apollo_instance_segmentation/debug/instance_pointcloud -> PointCloud2
-    path_publisher = rospy.Publisher("object_detection/counter", String, queue_size=1)
+    path_publisher = rospy.Publisher("object_detection/counter", Message1, queue_size=1)
     rospy.spin()
 
 if __name__ == '__main__':
