@@ -16,3 +16,4 @@ To make-
 -	source devel/setup.bash 
 - 	source /home/mayanka/autoware.proj.gsm8/install/setup.bash (for importing autoware_perception_msgs.msg)
 -	rosrun detection_evaluation scripts/evaluation.py
+-	rosrun using_markers basic_shapes
